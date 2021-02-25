@@ -10,7 +10,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<meta name="author" content="Margaret Swift" />
+<meta name="author" content="Margaret Swift, C. Lane Scher" />
 
 
 <title>Part 1: Exploratory Data Analysis with eBird data</title>
@@ -144,8 +144,8 @@ a.sourceLine {
 
 <section class="page-header">
 <h1 class="title toc-ignore project-name">Part 1: Exploratory Data Analysis with eBird data</h1>
-<h4 class="author project-author">Margaret Swift</h4>
-<h4 class="date project-date">09 February, 2021</h4>
+<h4 class="author project-author">Margaret Swift, C. Lane Scher</h4>
+<h4 class="date project-date">25 February, 2021</h4>
 </section>
 
 
@@ -180,7 +180,7 @@ a.sourceLine {
 <hr />
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>Welcome to Part 1 of our eBird dataset tutorial! If you missed it, Part 0 is all about downloading and filtering eBird data (<code>data.RData</code> in this tutorial). Part 2 applies the basic exploratory data analysis lessons learned in this tutorial to some real-world analysis of hurricanes’ effects on birds in North Carolina.</p>
+<p>Welcome to Part 1 of our eBird dataset tutorial! If you missed it, Part 0 is all about downloading and filtering eBird data (<code>data.rdata</code> in this tutorial). Part 2 applies the basic exploratory data analysis lessons learned in this tutorial to some real-world analysis of hurricanes’ effects on birds in North Carolina. To access data files and scripts for this tutorial, visit <a href="https://github.com/margaret-swift/eBirdEDA" class="uri">https://github.com/margaret-swift/eBirdEDA</a>.</p>
 <p>Exploratory Data Analysis, or EDA, is a catch-all term that means “looking at the data you’ve got before starting on your analysis.” Just like you might read the back cover, flip through the pages, and admire the cover of a book before diving into the story, we do the same thing with data. This can be as simple as looking at a data table, or as complicated as plotting data points on a map. We cover the basics here.</p>
 <p>EDA is really important for data analysis. You have to know what’s going on with your data before you can begin to analyze it. It can save you a lot of headaches in the future, too, by finding incorrect data points, or bizarre data trends due to incorrect data types. In my experience, I’ve discovered missing and duplicate data points, flipped latitude-longitude locations, and data that was just <em>wrong</em>, all from performing EDA. I hope this tutorial will help you appreciate EDA and begin to be comfortable with the basic tools of the trade.</p>
 </div>
@@ -199,14 +199,14 @@ a.sourceLine {
 <span id="cb3-2"><a href="#cb3-2"></a>               sf, mapproj, maps, rnaturalearth, rnaturalearthdata, usmap, <span class="co">#map</span></span>
 <span id="cb3-3"><a href="#cb3-3"></a>               ggplot2, scales, viridis) <span class="co">#for nice plotting</span></span></code></pre></div>
 <p>The last bit of set-up: Make sure R knows where you want it to look for files! This is called your ‘working directory’ (<code>wd</code>). Mine are stored in a folder called ‘ebirdGIT’, but yours might be somewhere different. Copy and paste the file path of your data folder into this chunk and run it (make sure the slashes / are going the correct way!).</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a><span class="kw">setwd</span>(<span class="st">&quot;/Documents/ebirdGIT&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a><span class="kw">setwd</span>(<span class="st">&quot;~/Documents/ebirdGIT&quot;</span>)</span></code></pre></div>
 </div>
 <div id="loading-your-data" class="section level3">
 <h3>Loading your data</h3>
 <p>The data we’re going to be working with today is from <a href="https://ebird.org/about">eBird</a>. eBird is a community-based platform launched in 2002 where anyone can create an account and log the birds they see. Every time someone goes out on a walk or sits on their back porch, they’ll create a ‘checklist’ for that activity, recording the species and number of birds they see. <a href="https://ebird.org/science">Visit this link</a> for more information about how scientists use eBird data in their research projects.</p>
 <p>eBird is an extremely popular platform with a LOT of data (we’re talking gigabytes here); this would take you a very long time to download and use. Luckily, Lane has already done the hard part for you. We’ll just be working with a small portion: part of hurricane season (August 15-October 15) data for birds sighted across North Carolina from 2017 to 2019. Visit our Part 0 tutorial for more information on how we downloaded and parsed these eBird data.</p>
-<p>To load the data for today’s lecture, <strong>make sure you’ve got the ‘data/data.Rdata’ file downloaded</strong> into the same working directory you defined in the setup section, then run these lines of code:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="kw">load</span>(<span class="st">&quot;../data/data.Rdata&quot;</span>)</span>
+<p>To load the data for today’s lecture, <strong>make sure you’ve got the ‘data.rdata’ file downloaded</strong> into the same working directory you defined in the setup section, then run these lines of code:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="kw">load</span>(<span class="st">&quot;../data/data.rdata&quot;</span>) <span class="co">#change this to match your file path</span></span>
 <span id="cb5-2"><a href="#cb5-2"></a>data &lt;-<span class="st"> </span>allData[[<span class="dv">2</span>]] <span class="co">#this second object contains our North Carolina data.</span></span></code></pre></div>
 <p>Now, we’re going to be making a few maps today, so we’ll need to load those as well. These come from the libraries you loaded earlier, so there’s no need to download any new files. We’re just going to use cities in North Carolina with over a million residents, so the last line filters the us.cities dataset to just those parameters.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>states &lt;-<span class="st"> </span><span class="kw">map</span>(<span class="st">&quot;state&quot;</span>, <span class="dt">plot =</span> <span class="ot">FALSE</span>, <span class="dt">fill =</span> <span class="ot">TRUE</span>) <span class="co">#get state data</span></span>

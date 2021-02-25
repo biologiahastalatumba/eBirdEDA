@@ -1,6 +1,6 @@
 ---
 title: "Part 1: Exploratory Data Analysis with eBird data"
-author: "Margaret Swift"
+author: "Margaret Swift, C. Lane Scher"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   prettydoc::html_pretty:
@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 ```
 # Introduction
 
-Welcome to Part 1 of our eBird dataset tutorial! If you missed it, Part 0 is all about downloading and filtering eBird data (`data.RData` in this tutorial). Part 2 applies the basic exploratory data analysis lessons learned in this tutorial to some real-world analysis of hurricanes' effects on birds in North Carolina.
+Welcome to Part 1 of our eBird dataset tutorial! If you missed it, Part 0 is all about downloading and filtering eBird data (`data.rdata` in this tutorial). Part 2 applies the basic exploratory data analysis lessons learned in this tutorial to some real-world analysis of hurricanes' effects on birds in North Carolina. To access data files and scripts for this tutorial, visit https://github.com/margaret-swift/eBirdEDA. 
 
 Exploratory Data Analysis, or EDA, is a catch-all term that means "looking at the data you've got before starting on your analysis." Just like you might read the back cover, flip through the pages, and admire the cover of a book before diving into the story, we do the same thing with data. This can be as simple as looking at a data table, or as complicated as plotting data points on a map. We cover the basics here.
 
@@ -53,7 +53,7 @@ pacman::p_load(dplyr, lubridate, knitr, #for data wrangling and handling dates, 
 The last bit of set-up: Make sure R knows where you want it to look for files!  This is called your 'working directory' (`wd`). Mine are stored in a folder called 'ebirdGIT', but yours might be somewhere different. Copy and paste the file path of your data folder into this chunk and run it (make sure the slashes / are going the correct way!).
 
 ```{r setWD, eval=F}
-setwd("/Documents/ebirdGIT")
+setwd("~/Documents/ebirdGIT")
 ```
 
 ### Loading your data
@@ -62,10 +62,10 @@ The data we're going to be working with today is from [eBird](https://ebird.org/
 
 eBird is an extremely popular platform with a LOT of data (we're talking gigabytes here); this would take you a very long time to download and use. Luckily, Lane has already done the hard part for you. We'll just be working with a small portion: part of hurricane season (August 15-October 15) data for birds sighted across North Carolina from 2017 to 2019. Visit our Part 0 tutorial for more information on how we downloaded and parsed these eBird data.
 
-To load the data for today's lecture, **make sure you've got the 'data/data.Rdata' file downloaded** into the same working directory you defined in the setup section, then run these lines of code:
+To load the data for today's lecture, **make sure you've got the 'data.rdata' file downloaded** into the same working directory you defined in the setup section, then run these lines of code:
 
 ```{r loadingNC}
-load("../data/data.Rdata")
+load("../data/data.rdata") #change this to match your file path
 data <- allData[[2]] #this second object contains our North Carolina data.
 ```
 
