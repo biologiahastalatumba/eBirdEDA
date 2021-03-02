@@ -4,4 +4,4 @@ Welcome to this tutorial for Exploratory Data Analysis (EDA) through eBird data.
 
 - Part Zero: [Getting started with eBird data](https://rpubs.com/c-lane-scher/) (**under construction**)
 - Part One: [Exploratory Data Analysis with eBird](https://rpubs.com/margaret-swift/eda-with-ebird)
-- Part Two: [How do hurricanes affect the distribution of shorebirds?](https://rpubs.com/c-lane-scher/) (**under construction**)
+- Part Two: [How do hurricanes affect the distribution of shorebirds?](https://rpubs.com/clanescher/730898)
