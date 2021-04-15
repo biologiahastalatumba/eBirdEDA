@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 ```
 # Introduction
 
-Welcome to Part 1 of our eBird dataset tutorial! If you missed it, Part 0 is all about downloading and filtering eBird data (`data.rdata` in this tutorial). Part 2 applies the basic exploratory data analysis lessons learned in this tutorial to some real-world analysis of hurricanes' effects on birds in North Carolina. To access data files and scripts for this tutorial, visit https://github.com/margaret-swift/eBirdEDA. 
+Welcome to Part 1 of our eBird dataset tutorial! Part 2 applies the basic exploratory data analysis lessons learned in this tutorial to some real-world analysis of hurricanes' effects on birds in North Carolina. To access data files and scripts for this tutorial, visit https://github.com/margaret-swift/eBirdEDA. 
 
 Exploratory Data Analysis, or EDA, is a catch-all term that means "looking at the data you've got before starting on your analysis." Just like you might read the back cover, flip through the pages, and admire the cover of a book before diving into the story, we do the same thing with data. This can be as simple as looking at a data table, or as complicated as plotting data points on a map. We cover the basics here.
 
@@ -110,9 +110,9 @@ data$month <- month(data$observation_date)
 data$month <- as.factor( data$month ) 
 ```
 
-<span style="color:purple">**On your own**</span>, try using functions like `year()` or `month()` on today's date (`today()`) or other days (`as.Date('2021-03-30')`. What does the function `yday()` do? What about `wday()`?
+<span style="color:purple">**On your own:**</span> Try using functions like `year()` or `month()` on today's date (`today()`) or other days (`as.Date('2021-03-30')`. What does the function `yday()` do? What about `wday()`?
 
-<span style="color:purple">**On your own**</span> Use `View()` in your own console; it won't show up properly on this HTML document. Make sure to click around and explore the filter, sort, and search functions. Compare `originalData` to `data` after the changes we made in this section.
+<span style="color:purple">**On your own:**</span> Use `View()` in your own console; it won't show up properly on this HTML document. Make sure to click around and explore the filter, sort, and search functions. Compare `originalData` to `data` after the changes we made in this section.
 
 ### Extracting unique values from a group
 
@@ -126,11 +126,11 @@ length(species)
 
 `r length(species)` species just in North Carolina! Not too shabby. 
 
-<span style="color:purple">**On your own**</span> There are a few other similar functions you can try on your own: `tail()`, `str()`, and `summary()`. Try them out on this dataset.
+<span style="color:purple">**On your own:**</span> There are a few other similar functions you can try on your own: `tail()`, `str()`, and `summary()`. Try them out on this dataset.
 
 ### Investigating data's temporal spread
 
-Our next question: <span style="color:blue">*When were these data recorded?*</span> Let's use `table()` to summarize the number of checklists per year. First, we'll have to create a smaller table of just all the checklist IDs and the year and month they were created in; otherwise, we'll have `r length(species)` rows for each checklist. We're going to use the function `group_by` to call out the data we want, and then `summarize` to collapse the dataset into each of the unique checklists.
+Our next question: <span style="color:blue">*When were these data recorded?*</span> Let's use `table()` to summarize the number of checklists per year. First, we'll have to create a smaller table of just all the checklist IDs and the year and month they were created in; otherwise, we'll have `r length(species)` rows for each checklist. We're going to use the function `group_by` to call out the data we want, and then `summarize` to collapse the dataset into each of the unique checklists. Both of these functions come from the `dplyr` package, which we've already loaded in.
 
 ```{r checklists}
 checklists <- group_by( data, checklist_id, year, month, observation_date )
@@ -146,7 +146,7 @@ barplot(checklists.yearly, col='purple', lwd=3, ylab='count', xlab='year')
 
 Interesting---you can see that the number of observations is growing over time. Why might this be? (Hint: remember that this is the *number of observations* made on a social community science platform, which is increasing in usership over time.)
 
-<span style="color:purple">**On your own**</span> Try changing the code in the above chunk to find out what the parameters `col`, `lwd`, `xlab` and `ylab` do. Use the `?barplot()` function in the console to figure out how to add a title.
+<span style="color:purple">**On your own:**</span> Try changing the code in the above chunk to find out what the parameters `col`, `lwd`, `xlab` and `ylab` do. Use the `?barplot()` function in the console to figure out how to add a title.
 
 Now, let's see how the data are spread out across months, using the same code as the yearly data but with `checklists$month` instead of `checklists$year`:
 
@@ -155,7 +155,7 @@ Now, let's see how the data are spread out across months, using the same code as
 barplot(checklists.monthly, col='blue', lwd=3, ylab='count', xlab='month')
 ```
 
-<span style="color:purple">**On your own**</span>: It looks like there are a lot more observations on eBird during September than August or October. Why might that be? (Hint: use the `summary` function to investigate the spread of the `observation_date` column.)
+<span style="color:purple">**On your own:**</span> It looks like there are a lot more observations on eBird during September than August or October. Why might that be? (Hint: use the `summary` function to investigate the spread of the `observation_date` column.)
 
 From these two plots alone, you can see why it's important to do our EDA. We have already learned that the number of observations is increasing every year, and that there is more data in September than in August or October. This is not a problem, but it is an important thing to know about our dataset.
 
@@ -170,7 +170,7 @@ From these two plots alone, you can see why it's important to do our EDA. We hav
 
 Let's try a harder question this time: <span style="color:blue">*Which birds are most common across North Carolina for this time period?*</span> One way to answer this question is to find out how many checklists contain each species, then sort from largest to smallest. 
 
-In Part 0, we learned that it is useful for future analyses to account for checklists that *don't* have a certain species, as well as those that do. All those zeroes, however, will mess up this frequency analysis; every species will be 'present' in every checklist, even if their 'presence' is at zero abundance. 
+Because there is a difference between "I never went there, therefore I didn't see any cardinals" and "I went there, and didn't see any cardinals", it is useful to account for checklists that *don't* have a certain species. All those zeroes, however, will mess up our frequency analysis so far; every species will be 'present' in every checklist, even if their 'presence' is at zero abundance. 
 
 To deal with this, we'll make a temporary subset of our data that ignores these zeroes, using two different methods. The first is to find all the rows with '0' for that species and remove them. The second uses the `filter` function. Both are perfectly acceptable methods, and depend on your preference.
 
@@ -275,11 +275,11 @@ Ah, we see a difference here. We see our composition of common birds has shifted
 
 For this section, we're going to look at data for a single species: the [yellow-rumped warbler](https://www.allaboutbirds.org/guide/Yellow-rumped_Warbler/overview) (*Setophaga coronata*). 
 
-![Yellow-rumped warbler, Setophaga coronata. Photo from eBird.com](../images/yrw.jpg)
+![Yellow-rumped warbler, *Setophaga coronata*. Photo uploaded to the Macaulay online library by Paul Tavarez, 2017.](../images/yrw.jpg)
 
 The yellow-rumped warbler is a small gray bird with bright yellow patches. It spends its breeding season up in Canada, but migrates down to the southern US (including North Carolina) for the winter. Keep an eye out for this migration pattern as we work through the eBird dataset!
 
-![Range of the yellow-rumped warbler. The Myrtle subspecies is found in the east. Photo from eBird.com](../images/range.jpg)
+![Range of the yellow-rumped warbler. The Myrtle subspecies is found in the east. Image provided by eBird (www.ebird.org) and created in 2017.](../images/range.jpg)
 
 First, we'll create a new data frame that is just yellow-rumped warblers. Then, to make things simpler, we're just going to focus on 2018 data for now.
 
@@ -288,7 +288,7 @@ seto.coro <- data[ data$scientific_name == "Setophaga coronata", ]
 seto.coro.2018 <- seto.coro[ seto.coro$year == 2018, ]
 ```
 
-<span style="color:purple">**On your own**</span> Try using `View()`, `head()`, and `dim()` to look at our new, smaller dataset.
+<span style="color:purple">**On your own:**</span> Try using `View()`, `head()`, and `dim()` to look at our new, smaller dataset.
 
 We're going to use a library called `ggplot2` for the following graphs. This is just another way to plot things in R, and is a commonly-used library for all sorts of graphs. They usually come out quite pretty. The syntax looks like this ([here's a cheat sheet](https://rstudio.com/wp-content/uploads/2016/11/ggplot2-cheatsheet-2.1.pdf), if you like):
 
@@ -342,7 +342,7 @@ ggplot(data=checklists.2018, aes(x=observation_date)) +
 
 Comparing the two, it's clear that while the *number of people that saw yellow-rumped warblers* increases dramatically in October, the *number of people out birding* hasn't changed much. This second concept is called *effort*, in this case a *temporal effort*, and it matters a lot for the analysis we'll be doing in part 2. When looking at observation datasets like eBird, you have to keep in mind that there are certain days (weekends, holidays, summertime, Christmas) that people like to go birding, and certain places (near home, national parks) as well. All of this is included in *effort*.
 
-<span style="color: purple">**On your own**</span> How do you think effort affects where and when birds are counted?
+<span style="color: purple">**On your own:**</span> How do you think effort affects where and when birds are counted?
 
 
 
@@ -420,7 +420,7 @@ ncPlot +
   zoom
 ```
 
-Hm. Look at the observation count scale on the right. That's not quite right--we'd rather not show observations with '0' warblers the same as the other dots. That is confusing and could lead a casual reader to think that there are a lot more yellow-rumped warblers than there are. To deal with this, we're going to create a value called `is_present`, to mean "is this bird present at this point?". Then, if `is_present` is `FALSE`, we'll color those dots white, and the others can remain black.
+Hm. Look at the observation count scale on the right. That's not quite right---we'd rather not show observations with '0' warblers the same as the other dots. That is confusing and could lead a casual reader to think that there are a lot more yellow-rumped warblers than there are. To deal with this, we're going to create a value called `is_present`, to mean "is this bird present at this point?". Then, if `is_present` is `FALSE`, we'll color those dots white, and the others can remain black.
 
 ```{r dataPointsWithAbsence, fig.width=10, fig.fullwidth=TRUE}
 seto.coro.2018$is_present <- ifelse( seto.coro.2018$observation_count, T, F ) 
@@ -477,11 +477,11 @@ ggplot() +
   scale_fill_brewer()
 ```
 
-<span style="color:purple">**On your own**</span> What do you notice about the size of the data points from graph to graph? What could this tell you about the distribution of yellow-rumped warblers over time in North Carolina? How could you change this code to zoom out to the Eastern Seaboard? What about changing the colors of the dots? 
+<span style="color:purple">**On your own:**</span> What do you notice about the size of the data points from graph to graph? What could this tell you about the distribution of yellow-rumped warblers over time in North Carolina? How could you change this code to zoom out to the Eastern Seaboard? What about changing the colors of the dots? 
 
-<span style="color:purple">**On your own**</span> Try doing these plots with your favorite bird species. What do you notice about its distribution?
+<span style="color:purple">**On your own:**</span> Try doing these plots with your favorite bird species. What do you notice about its distribution?
 
 
 # Conclusion
 
-That's the end of our Exploratory Data Analysis through eBird tutorial! I hope you've learned something about the usefulness of EDA and how to approach EDA through R. Stay tuned for more eBird with Lane Scher in Part 2.
+That's the end of our Exploratory Data Analysis through eBird tutorial! I hope you've learned something about the usefulness of EDA and how to approach EDA through R. Stay tuned for more eBird with Lane Scher in [Part 2](https://rpubs.com/clanescher/730898).
