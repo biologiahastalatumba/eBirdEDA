@@ -1,0 +1,374 @@
+---
+title: "Part 2: How do hurricanes affect the distribution of coastal birds?"
+author: "C. Lane Scher and Margaret Swift"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  prettydoc::html_pretty:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this section, we'll use eBird data to investigate how coastal bird distributions change after a hurricane. We'll try visualizing these changes a few different ways. As you work through this tutorial, try changing the code around to be sure you understand how things work.
+
+To access the code and data files, visit the [GitHub page](https://github.com/margaret-swift/eBirdEDA) for this tutorial.
+
+## Set things up
+
+Before we start, we need to load the packages we'll use. We'll also define a function here that'll be used later.
+```{r, message = F, warning = F}
+library(ggplot2)
+library(lubridate)
+library(sf)
+library(knitr)
+library(reshape2)
+library(ggpubr)
+library(maps)
+library(dplyr)
+
+# removes observations from checklists with an X
+# see Part 1 for more information about writing functions and what this function means
+removeX <- function(df) {
+  removeXdf <- df[which(df$observation_count == "X"), c("checklist_id", "observation_count")]
+  remX <- unique(as.character(removeXdf$checklist_id))
+  if (length(removeX) > 0) {
+    df <- df[-which(df$checklist_id %in% remX),]
+  }
+}
+```
+
+Now read in the data. 
+```{r}
+# this is our eBird data
+load("data.rdata")
+
+# this is data from the maps package that we'll use to make our maps
+states <- map("state", plot = FALSE, fill = TRUE)
+states <- st_as_sf(states)
+```
+
+
+Let's make the background plot that we'll use for many of our maps. We'll use the `ggplot2` package. `ggplot2` was introduced in Part 1, so check there for a refresher.
+```{r}
+mapBase <- ggplot() +
+  geom_sf(data = states, aes(fill = (ID %in% c("north carolina",
+                                               "south carolina",
+                                               "virginia")))) +
+  scale_fill_brewer() +
+  coord_sf(xlim = c(-85, -73),
+            ylim = c(32, 40)) +
+  guides(fill = FALSE)
+
+mapBase
+```
+
+
+
+
+## Gather hurricane data
+
+We want to know how hurricanes affect bird distributions. So let's first get together some data about the recent hurricanes along the coast of NC. We'll look at these three hurricanes:
+
+```{r, echo = F}
+dates <- as.Date(c('2017-09-26', '2018-09-14', '2019-09-06'))
+
+hurricanes <- data.frame(
+  name = c('Maria', 'Florence', 'Dorian'),
+  cat  = c(1,1,2),
+  path = c('offshore', 'inland', 'coastal'),
+  date = dates
+)
+
+colnames(hurricanes) <- c("Name", "Category", "Path", "Date")
+
+kable(hurricanes)
+```
+
+Let's put that information into a dataframe that we can use for our analysis. We'll make a dataframe called `hurricanes` with four columns: `name`, `cat`, `path`, and `date`.
+```{r}
+hurricanes <- data.frame(
+  name = c('Maria', 'Florence', 'Dorian'),
+  cat  = c(1,1,2),
+  path = c('offshore', 'inland', 'coastal'),
+  date = as.Date(c('2017-09-26', '2018-09-14', '2019-09-06'))
+)
+```
+
+From this information, we can create a few new columns. First, we want columns for Julian day (the number of days since the beginning of the year; the Julian Day of Jan 6 is 6) and year. These functions are from the `lubridate` package.
+```{r}
+hurricanes$jd <- yday(hurricanes$date)
+hurricanes$year <- year(hurricanes$date)
+```
+
+Let's start our analysis with hurricane Florence. We can select the row we want from the `hurricanes` dataframe. We'll use `which()` to keep only the rows with "Florence" in the `name` column.
+```{r}
+hurrUse <- c("Florence")
+
+hurr <- hurricanes[which(hurricanes$name %in% hurrUse),]
+```
+<span style="color: purple;">**On your own**</span> How would you analyze the effects of a different hurricane? What patterns would you expect to see for hurricanes with different paths--for example, a hurricane that moves inland east to west, compared to a hurricane that brushes the coast south to north?
+
+
+## Clean eBird data
+
+Now we need to clean up our bird data. We're using data from eBird, a massive citizen science project that has been collecting data from around the world for almost 20 years. Read more about the project [here](www.ebird.org). For more information about how to collect eBird data yourself, check out [this video](https://www.youtube.com/watch?v=HjMcA2kuG2M).
+
+Right now, our eBird data is in a list with three elements, where each element is a dataframe with checklists from one state. We want to combine those into a single dataframe that we can manipulate. We use `bind_rows()` from the `dplyr` package to create one large dataframe that we'll call `data`.
+```{r}
+data <- bind_rows(allData)
+```
+
+
+
+### Subset by genus
+
+Because hurricanes occur along coasts, we might guess that birds that usually live near the coast will be the most impacted. So for our analysis, we'll just look at seabirds and shorebirds. Here are the genera that we'll look at.
+```{r}
+genera <- c("Anhinga", "Pelecanus", "Fregata", 
+            "Anous", "Rynchops", "Rissa", 
+            "Chroicocephalus", "Hydrocoloeus", "Leucophaeus",
+            "Larus", "Gelochelidon", "Hydroprogne",
+            "Thalasseus", "Sternula", "Onychoprion", 
+            "Sterna", "Chlidonias")
+```
+
+
+Now we want to subset our big dataset by genus. To do that, we need a column with the genus names. Right now, `data` has a column for scientific name, which includes genus and species, separated by a space. We can make a genus column using the `gsub()` function.
+
+The `gsub()` function finds a pattern in a character string and replaces it with a new pattern. Here, we want to remove everything after the genus name--in other words, replace it with nothing. For example, for the American White Pelican, or *Pelecanus erythrorhynchos*, the code will replace everything after *Pelecanus* with nothing. So we're left with just the characters before the space, *Pelecanus*, which is the genus. In the code, we tell `gsub()` to replace a space and everything after it (`" .*"` in the code) with nothing (`""`) and create a new column called `genus`.
+```{r}
+data$genus <- gsub(" .*", "", data$scientific_name)
+```
+
+Now that we have a column for the genus, we can subset the data so that we are left with just the genera that we want. We'll use `which()` again.
+```{r}
+data <- data[which(data$genus %in% genera),]
+```
+
+This makes our dataset a lot smaller! It'll be much easier to work with now because it won't take so long to run.
+
+<span style="color: purple;">**On your own**</span> Try selecting different genera to see the effect of hurricanes on other types of birds. If you wanted to look at a particular species, how would you subset by *species name* instead of genus?
+
+### Finish organizing the data
+
+Let's make a few more columns now that will be important for our analysis. We want a column for the Julian day of the observation. 
+```{r}
+data$jd <- yday(data$observation_date)
+```
+
+We also noticed in Part 1 that the `observation_count` column is not in the correct class:
+```{r}
+class(data$observation_count)
+```
+r is reading the count column as characters. That means in any plot or analysis, r won't treat these values as numbers. r reads this column that way because it contains numbers as well as X's (eBird observers can report an X instead of a count for a species). Let's get rid of all checklists in `data` that include any X's in `observation_count`. This is the function we defined earlier.
+```{r}
+data <- removeX(data)
+```
+
+Now we can make `observation_count` a numeric class. Here we're replacing the `observation_count` column with the same column, after we've made it numeric.
+```{r}
+data$observation_count <- as.numeric(data$observation_count)
+```
+
+We only want observations that have effort reported. We'll get more into that later, but for now, let's remove rows where `duration_minutes` is `NA`. We now use `!` and `is.na()` to keep all rows *except* where `duration_minutes` is `NA`. 
+```{r}
+data <- data[!is.na(data$duration_minutes),]
+```
+
+
+## Let's see the results!!!!
+
+### Maps of bird distribution
+
+First, we'll make some maps to compare the distribution of these birds before and after a hurricane.
+
+We need to remember that each observation contains a different amount of effort. Someone who is out looking for birds for three hours will probably see more birds than someone who is out for 30 minutes. But this is because they're out looking for longer, not because there are actually more birds. So let's adjust each count by the number of minutes of the observation. We'll take the `observation_count` and divide it by the `duration_minutes` and save that as a new column called `counteff`.
+```{r}
+data$counteff <- data$observation_count / data$duration_minutes
+```
+
+Now that we've accounted for differences in effort, let's make a map so we can see where exactly these birds are occurring in the five days before and after the hurricane. First let's create three time intervals using the `interval()` function from `lubridate`:
+
+- the first interval is 5 days before the hurricane until one day before the hurricane--this is our baseline for coastal bird distribution
+- the second interval is the day of the hurricane until four days after--this will show us how coastal bird distribution changes in the days immediately after the hurricane
+- the third interval is five days after the hurricane until ten days after the hurricane--this will show us if coastal bird distributions go back to normal after the storm
+```{r}
+intOne <- interval(hurr$date - 5, hurr$date - 1) 
+intTwo <- interval(hurr$date, hurr$date + 4)    
+intThr <- interval(hurr$date + 5, hurr$date + 10)
+```
+
+We can now create three subsets of data to include only observations in those intervals. 
+```{r}
+subOne <- data[which(data$observation_date %within% intOne),]
+subTwo <- data[which(data$observation_date %within% intTwo),]
+subThr <- data[which(data$observation_date %within% intThr),]
+```
+
+
+Now we can make our plots! To make it more clear, let's put white dots where coastal birds were not seen and black dots where they were seen. We can also change the size of the dots to represent the number of individuals counted.
+```{r, fig.width=10, fig.height=4, fig.fullwidth=TRUE}
+# subset so we only have occurrences, no zeroes. These will be black in our map. 
+subOne1 <- subOne[which(subOne$counteff > 0),]
+subTwo1 <- subTwo[which(subTwo$counteff > 0),]
+subThr1 <- subThr[which(subThr$counteff > 0),]
+
+# make plot of the first interval (before the hurricane)
+plotOne <- mapBase +
+  geom_point(data = subOne,
+             mapping = aes(x = longitude, y = latitude,
+                           size = counteff),
+             color = "white") +
+  geom_point(data = subOne1,
+             mapping = aes(x = longitude, y = latitude,
+                           size = counteff))
+
+# make plot of the second interval (immediately after the hurricane)
+plotTwo <- mapBase +
+  geom_point(data = subTwo,
+             mapping = aes(x = longitude, y = latitude,
+                           size = counteff),
+             color = "white") +
+  geom_point(data = subTwo1,
+             mapping = aes(x = longitude, y = latitude,
+                           size = counteff))
+
+# make plot of the third interval (some days after the hurricane)
+plotThr <- mapBase +
+  geom_point(data = subThr,
+             mapping = aes(x = longitude, y = latitude,
+                           size = counteff),
+             color = "white") +
+  geom_point(data = subThr1,
+             mapping = aes(x = longitude, y = latitude,
+                           size = counteff))
+
+# now plot them together
+ggarrange(plotOne, plotTwo, plotThr,
+          nrow = 1, ncol = 3)
+
+```
+
+
+Let's make the maps a little prettier. Here, we add axis labels and get rid of the background grid. We want to change the axis labels, coordinates, point sizes, and background the same way in all three plots. So we'll create a few objects called `pretty...` that hold that information. Then we just have to add those objects and a title to each of our maps.
+```{r, warning = F, message = F, fig.width=10, fig.height=4, fig.fullwidth=TRUE}
+prettyLabs <- labs(x = "Longitude", y = "Latitude",
+                   size = "Abundance")
+prettyCoords <- coord_sf(xlim = c(-84.5, -75),
+                         ylim = c(31.7, 39.9))
+prettyScale <- scale_size_continuous(limits = c(0, 15))
+prettyTheme <- theme(panel.background = element_blank(),
+                     panel.grid = element_blank())
+
+plotOne <- plotOne +
+  prettyLabs + 
+  prettyCoords +
+  prettyScale +
+  prettyTheme +
+  labs(title = "Day -5 through Day -1")
+
+plotTwo <- plotTwo +
+  prettyLabs + 
+  prettyCoords +
+  prettyScale +
+  prettyTheme +
+  labs(title = "Day 0 through Day 4")
+
+plotThr <- plotThr +
+  prettyLabs + 
+  prettyCoords +
+  prettyScale +
+  prettyTheme +
+  labs(title = "Day 5 through Day 10")
+
+# now plot them together again
+ggarrange(plotOne, plotTwo, plotThr,
+          nrow = 1, ncol = 3,
+          common.legend = T,
+          legend = "right")
+```
+
+In the first map, before the hurricane, there are lots of observations in the central and western parts of the state, but very few of them reported coastal birds. In the second map, immediately after the hurricane, many checklists across the state reported coastal birds. In the last map, most coastal birds are seen near the coast again.
+
+<span style="color: purple;">**On your own**</span> How would you look at the distribution of birds on a specific day? Could you look at distribution on the day of the hurricane? (Hint: think about effort (people birdwatching) on the day of the hurricane)
+
+### Birds at each longitude
+
+Next, we'll just look at NC and split the state into columns based on longitude to see how many coastal birds are seen in each of these columns. This way we can see how far west (inland) birds move after a hurricane.
+
+Let's pull out just the data frome North Carolina and save it in an object called `nc` using `which()`.
+```{r}
+nc <- data[which(data$state == "North Carolina"),]
+```
+
+For this figure, let's use the 10 days before the hurricane and the 10 days after. Let's create that 20-day interval and then use `which()` to keep only the checklists that were reported during that time period.
+```{r}
+interval20 <- interval(hurr$date - 10, hurr$date + 10)
+
+nc <- nc[which(nc$observation_date %within% interval20),]
+```
+
+
+Now we want to group checklists together based on their longitude. Let's add a column with longitude rounded to the nearest whole number. Then we'll make it a factor so r doesn't treat it as a continuous variable
+```{r}
+nc$longRound <- round(nc$longitude, digits = 0)
+# digits = tells r how many decimal places to keep. Here we keep 0 decimal places
+
+nc$longRound <- as.factor(nc$longRound)
+```
+
+If we want to visualize what we've just done, we can create a new map with each point colored by its rounded longitude. Remember we're only using checklists in North Carolina now.
+```{r}
+mapBase +
+  geom_point(aes(x = nc$longitude, y = nc$latitude,
+                 color = nc$longRound))
+```
+
+We can see that checklists along the coast are mostly pink and purple, whereas checklists in the western part of the state are green and orange. But we want to know how the distribution changes over time, which we can't see from this figure. We need to separate checklists by day too.
+
+
+So let's aggregate all the checklists within each longitudinal column and within each day using the `aggregate()` function. We'll save the aggregated data in an object called `agg` and rename the columns.
+```{r}
+agg <- aggregate(nc[,c("counteff")],
+                 by = list(nc$longRound, nc$jd),
+                 FUN = "mean")
+colnames(agg) <- c("longRound", "jd", "counteff")
+```
+
+
+We can now make a plot showing each day along the x axis and the proportion of coastal birds that were seen in each longitudinal group (colors). Pink colors are along the coast, blue in the center of the state, and orange in western NC.
+```{r, warning = F, message = F}
+longByDay <- ggplot() +
+  geom_bar(data = agg,
+           mapping = aes(x = jd,
+                         y = counteff,
+                         fill = longRound),
+           stat = "identity",
+           position = "fill") +
+  labs(x = "Julian day",
+       y = "Proportion of birds seen at each longitude",
+       fill = "Longitude")
+longByDay
+```
+
+Let's add to this figure a line marking the date that the hurricane occurred. We can also clean it up a little.
+```{r, warning = F, message = F}
+longByDay <- longByDay +
+  geom_segment(mapping = aes(x = hurr$jd, xend = hurr$jd,
+                             y = -0.05, yend = 1.05)) +
+  theme_bw() +
+  theme(panel.background = element_blank(),
+        panel.grid = element_blank())
+longByDay
+```
+
+From this figure, we can see that the proportion of coastal birds seen at the coast (pinks) decreases in the days leading up to when the hurricane makes landfall, and it stays low for several days after the hurricane. In the 3 days after the hurricane, we see an increase in the proportion of coastal birds seen in the western part of the state (orange, green, and teals). Approximately five days after the hurricane hits land, the birds seem to have returned to their previous distribution.
+
+<span style="color: purple;">**On your own**</span> Look at the longitudinal distribution of birds over time in a different state. The coastline is not completely north-to-south, so how does that affect your interpretation of longitude as "distance from the coast"?
+
+## Conclusion
+We can see some interesting spatial and temporal patterns in coastal bird distributions caused by hurricanes. Try doing the same analysis looking at a different hurricane, different genera, or a different time period. What patterns do you notice?

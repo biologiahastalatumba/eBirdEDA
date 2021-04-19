@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 ```
 # Introduction
 
-Welcome to Part 1 of our eBird dataset tutorial! Part 2 applies the basic exploratory data analysis lessons learned in this tutorial to some real-world analysis of hurricanes' effects on birds in North Carolina. To access data files and scripts for this tutorial, visit https://github.com/margaret-swift/eBirdEDA. 
+Welcome to Part 1 of our eBird dataset tutorial! Part 2 applies the basic exploratory data analysis lessons learned in this tutorial to some real-world analysis of hurricanes' effects on birds in North Carolina. To access data files and scripts for this tutorial, visit [this tutorial's GitHub page](https://github.com/margaret-swift/eBirdEDA). If you are new to R or RStudio, check out [my introductory R modules](https://rpubs.com/margaret-swift/715955) to get started. For this tutorial, we assume a basic understanding of the layout of RStudio.
 
 Exploratory Data Analysis, or EDA, is a catch-all term that means "looking at the data you've got before starting on your analysis." Just like you might read the back cover, flip through the pages, and admire the cover of a book before diving into the story, we do the same thing with data. This can be as simple as looking at a data table, or as complicated as plotting data points on a map. We cover the basics here.
 
@@ -45,12 +45,12 @@ install.packages('pacman') #only run this once ever!
 Then you can use its function `p_load()` to load everything else. We use the `::` to use a package without loading it. It's also useful for remembering which package a certain function comes from
 
 ```{r loadLibraries}
-pacman::p_load(dplyr, lubridate, knitr, #for data wrangling and handling dates, respectively
-               sf, mapproj, maps, rnaturalearth, rnaturalearthdata, usmap, #map
-               ggplot2, scales, viridis) #for nice plotting
+pacman::p_load(dplyr, lubridate, knitr, #for data wrangling, dates, and nice tables
+   sf, mapproj, maps, rnaturalearth, rnaturalearthdata, usmap, #for mapping
+   ggplot2, scales, viridis) #for nice plotting
 ```
 
-The last bit of set-up: Make sure R knows where you want it to look for files!  This is called your 'working directory' (`wd`). Mine are stored in a folder called 'ebirdGIT', but yours might be somewhere different. Copy and paste the file path of your data folder into this chunk and run it (make sure the slashes / are going the correct way!).
+The last bit of set-up: Make sure R knows where you want it to look for files.  This is called your 'working directory' (`wd`). Mine are stored in a folder called 'ebirdGIT', but yours might be somewhere different. Copy and paste the file path of your data folder into this chunk and run it (make sure the slashes / are going the correct way).
 
 ```{r setWD, eval=F}
 setwd("~/Documents/ebirdGIT")
@@ -58,9 +58,9 @@ setwd("~/Documents/ebirdGIT")
 
 ### Loading your data
 
-The data we're going to be working with today is from [eBird](https://ebird.org/about). eBird is a community-based platform launched in 2002 where anyone can create an account and log the birds they see. Every time someone goes out on a walk or sits on their back porch, they'll create a 'checklist' for that activity, recording the species and number of birds they see. [Visit this link](https://ebird.org/science) for more information about how scientists use eBird data in their research projects. 
+The data we're going to be working with today is from [eBird](https://ebird.org/about). eBird is a community-based platform launched in 2002 where anyone can create an account and log the birds they see. Every time someone goes out on a walk or sits on their back porch, they'll create a 'checklist' for that activity, recording the species and number of birds they see. [Visit this link](https://ebird.org/science) for more information about how scientists use eBird data in their research projects, or [check out this video](https://www.youtube.com/watch?v=HjMcA2kuG2M) of Lane Scher, where she talks us through how to use eBird and how it is used by scientists today. 
 
-eBird is an extremely popular platform with a LOT of data (we're talking gigabytes here); this would take you a very long time to download and use. Luckily, Lane has already done the hard part for you. We'll just be working with a small portion: part of hurricane season (August 15-October 15) data for birds sighted across North Carolina from 2017 to 2019. Visit our Part 0 tutorial for more information on how we downloaded and parsed these eBird data.
+eBird is an extremely popular platform with a LOT of data (we're talking gigabytes here); this would take you a very long time to download and use. Luckily, Lane has already done the hard part for you. We'll just be working with a small portion: part of hurricane season (August 15-October 15) data for birds sighted across North Carolina from 2017 to 2019.
 
 To load the data for today's lecture, **make sure you've got the 'data.rdata' file downloaded** into the same working directory you defined in the setup section, then run these lines of code:
 
@@ -69,7 +69,7 @@ load("../data/data.rdata") #change this to match your file path
 data <- allData[[2]] #this second object contains our North Carolina data.
 ```
 
-Now, we're going to be making a few maps today, so we'll need to load those as well. These come from the libraries you loaded earlier, so there's no need to download any new files. We're just going to use cities in North Carolina with over a million residents, so the last line filters the us.cities dataset to just those parameters.
+We're going to be making a few maps today, so we'll need to load those as well. These come from the libraries you loaded earlier, so there's no need to download any new files. We're just going to use cities in North Carolina with over a million residents, so the last line filters the us.cities dataset to just those parameters.
 
 ```{r maps}
 states <- map("state", plot = FALSE, fill = TRUE) #get state data
@@ -110,9 +110,9 @@ data$month <- month(data$observation_date)
 data$month <- as.factor( data$month ) 
 ```
 
-<span style="color:purple">**On your own:**</span> Try using functions like `year()` or `month()` on today's date (`today()`) or other days (`as.Date('2021-03-30')`. What does the function `yday()` do? What about `wday()`?
+<span style="color:purple">**On your own**</span> Try using functions like `year()` or `month()` on today's date (`today()`) or other days (`as.Date('2021-03-30')`. What does the function `yday()` do? What about `wday()`?
 
-<span style="color:purple">**On your own:**</span> Use `View()` in your own console; it won't show up properly on this HTML document. Make sure to click around and explore the filter, sort, and search functions. Compare `originalData` to `data` after the changes we made in this section.
+<span style="color:purple">**On your own**</span> Use `View()` in your own console; it won't show up properly on this HTML document. Make sure to click around and explore the filter, sort, and search functions. Compare `originalData` to `data` after the changes we made in this section.
 
 ### Extracting unique values from a group
 
@@ -126,7 +126,7 @@ length(species)
 
 `r length(species)` species just in North Carolina! Not too shabby. 
 
-<span style="color:purple">**On your own:**</span> There are a few other similar functions you can try on your own: `tail()`, `str()`, and `summary()`. Try them out on this dataset.
+<span style="color:purple">**On your own**</span> There are a few other similar functions you can try On your own `tail()`, `str()`, and `summary()`. Try them out on this dataset.
 
 ### Investigating data's temporal spread
 
@@ -138,7 +138,7 @@ checklists <- summarize( checklists )
 head(checklists)
 ```
 
-Now that we have our `checklists` object, let's plot the number of checklists per year.
+Now that we have our `checklists` object, let's plot the number of checklists per year. (the parentheses `()` in the below code tell R to set the variable *and* print out the result to the console)
 ```{r yearlyChecklists}
 ( checklists.yearly <- table(checklists$year) )
 barplot(checklists.yearly, col='purple', lwd=3, ylab='count', xlab='year')
@@ -146,7 +146,7 @@ barplot(checklists.yearly, col='purple', lwd=3, ylab='count', xlab='year')
 
 Interesting---you can see that the number of observations is growing over time. Why might this be? (Hint: remember that this is the *number of observations* made on a social community science platform, which is increasing in usership over time.)
 
-<span style="color:purple">**On your own:**</span> Try changing the code in the above chunk to find out what the parameters `col`, `lwd`, `xlab` and `ylab` do. Use the `?barplot()` function in the console to figure out how to add a title.
+<span style="color:purple">**On your own**</span> Try changing the code in the above chunk to find out what the parameters `col`, `lwd`, `xlab` and `ylab` do. Use the `?barplot()` function in the console to figure out how to add a title.
 
 Now, let's see how the data are spread out across months, using the same code as the yearly data but with `checklists$month` instead of `checklists$year`:
 
@@ -155,7 +155,7 @@ Now, let's see how the data are spread out across months, using the same code as
 barplot(checklists.monthly, col='blue', lwd=3, ylab='count', xlab='month')
 ```
 
-<span style="color:purple">**On your own:**</span> It looks like there are a lot more observations on eBird during September than August or October. Why might that be? (Hint: use the `summary` function to investigate the spread of the `observation_date` column.)
+<span style="color:purple">**On your own**</span> It looks like there are a lot more observations on eBird during September than August or October. Why might that be? (Hint: use the `summary` function to investigate the spread of the `observation_date` column.)
 
 From these two plots alone, you can see why it's important to do our EDA. We have already learned that the number of observations is increasing every year, and that there is more data in September than in August or October. This is not a problem, but it is an important thing to know about our dataset.
 
@@ -288,7 +288,7 @@ seto.coro <- data[ data$scientific_name == "Setophaga coronata", ]
 seto.coro.2018 <- seto.coro[ seto.coro$year == 2018, ]
 ```
 
-<span style="color:purple">**On your own:**</span> Try using `View()`, `head()`, and `dim()` to look at our new, smaller dataset.
+<span style="color:purple">**On your own**</span> Try using `View()`, `head()`, and `dim()` to look at our new, smaller dataset.
 
 We're going to use a library called `ggplot2` for the following graphs. This is just another way to plot things in R, and is a commonly-used library for all sorts of graphs. They usually come out quite pretty. The syntax looks like this ([here's a cheat sheet](https://rstudio.com/wp-content/uploads/2016/11/ggplot2-cheatsheet-2.1.pdf), if you like):
 
@@ -342,7 +342,7 @@ ggplot(data=checklists.2018, aes(x=observation_date)) +
 
 Comparing the two, it's clear that while the *number of people that saw yellow-rumped warblers* increases dramatically in October, the *number of people out birding* hasn't changed much. This second concept is called *effort*, in this case a *temporal effort*, and it matters a lot for the analysis we'll be doing in part 2. When looking at observation datasets like eBird, you have to keep in mind that there are certain days (weekends, holidays, summertime, Christmas) that people like to go birding, and certain places (near home, national parks) as well. All of this is included in *effort*.
 
-<span style="color: purple">**On your own:**</span> How do you think effort affects where and when birds are counted?
+<span style="color: purple">**On your own**</span> How do you think effort affects where and when birds are counted?
 
 
 
@@ -477,9 +477,9 @@ ggplot() +
   scale_fill_brewer()
 ```
 
-<span style="color:purple">**On your own:**</span> What do you notice about the size of the data points from graph to graph? What could this tell you about the distribution of yellow-rumped warblers over time in North Carolina? How could you change this code to zoom out to the Eastern Seaboard? What about changing the colors of the dots? 
+<span style="color:purple">**On your own**</span> What do you notice about the size of the data points from graph to graph? What could this tell you about the distribution of yellow-rumped warblers over time in North Carolina? How could you change this code to zoom out to the Eastern Seaboard? What about changing the colors of the dots? 
 
-<span style="color:purple">**On your own:**</span> Try doing these plots with your favorite bird species. What do you notice about its distribution?
+<span style="color:purple">**On your own**</span> Try doing these plots with your favorite bird species. What do you notice about its distribution?
 
 
 # Conclusion
