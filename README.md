@@ -2,7 +2,7 @@
 
 Many scientific fields are currently experiencing a heyday of Big Data. In Ecology, large datasets often come from continuous automated sensors, satellite imagery, and increasingly, community-collected scientific data. For example, with the advent of the eBird database in 2003, casual and expert birders alike have been able to add to the body of bird locational data around the world. Although citizen science datasets can help us understand many ecological questions, they also present unique challenges for analysis. This project will lead students through an analysis of eBird data, where they will be exposed to basic tools in EDA, manipulating large datasets, and data visualization.
 
-This tutorial is the first of a two-part series on eBird data, co-authored by Margaret Swift and C. Lane Scher. You can check out the tutorials on RPubs here:
+This tutorial is the first of a two-part series on eBird data, co-authored by Margaret Swift and C. Lane Scher, and funded by Duke University's [Data Expeditions Initiative](https://bigdata.duke.edu/data-expeditions). You can check out the tutorials on RPubs here:
 
 - Part One: [Exploratory Data Analysis with eBird](https://rpubs.com/margaret-swift/eda-with-ebird)
 - Part Two: [How do hurricanes affect the distribution of shorebirds?](https://rpubs.com/clanescher/730898)
