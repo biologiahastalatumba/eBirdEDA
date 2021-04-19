@@ -1,4 +1,4 @@
----
+X---
 title: "Part 2: How do hurricanes affect the distribution of coastal birds?"
 author: "C. Lane Scher and Margaret Swift"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
@@ -35,7 +35,7 @@ library(dplyr)
 removeX <- function(df) {
   removeXdf <- df[which(df$observation_count == "X"), c("checklist_id", "observation_count")]
   remX <- unique(as.character(removeXdf$checklist_id))
-  if (length(removeX) > 0) {
+  if (length(remX) > 0) {
     df <- df[-which(df$checklist_id %in% remX),]
   }
 }
